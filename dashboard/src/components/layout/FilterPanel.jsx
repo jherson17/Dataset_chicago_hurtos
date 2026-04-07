@@ -62,7 +62,7 @@ export default function FilterPanel({ activeTab }) {
             {/* LOCATION FILTER */}
             {hasOptions('location') && (
                 <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-400 uppercase">Ubicación (Comuna/Barrio)</label>
+                    <label className="text-xs font-semibold text-gray-400 uppercase">Ubicación (Calle/Avenida)</label>
                     <select 
                         value={activeFilters.location || ''} 
                         onChange={(e) => handleChange('location', e)}
