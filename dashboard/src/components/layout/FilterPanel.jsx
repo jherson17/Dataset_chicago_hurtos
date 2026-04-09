@@ -6,9 +6,6 @@
  * 
  * Comportamiento Contextual Inteligente implementado:
  * - Lee la propiedad `activeTab` para saber en qué pantalla está el usuario.
- * - Si el usuario está viendo el gráfico de "Calidad de Vida" (isQualityView = true), 
- *   oculta automáticamente todos los filtros no espaciales (Edad, Sexo, Tipo, Transporte) 
- *   para mantener una UI limpia, ya que ese radar solo responde al filtro de "Ubicación".
  */
 import React from 'react';
 import { useDashboard } from '../../context/DashboardContext';
@@ -17,8 +14,6 @@ import { Filter } from 'lucide-react';
 export default function FilterPanel({ activeTab }) {
   const { activeDataset, setActiveDataset, filterOptions, activeFilters, filterByDimension } = useDashboard();
   
-  const isQualityView = activeTab === 'quality';
-
   if (!filterOptions || Object.keys(filterOptions).length === 0) return null;
 
   const handleChange = (dimName, e) => {
@@ -77,7 +72,7 @@ export default function FilterPanel({ activeTab }) {
             )}
 
             {/* TYPE FILTER */}
-            {hasOptions('type') && !isQualityView && (
+            {hasOptions('type') && (
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-400 uppercase">Tipo / Modalidad</label>
                     <select 
@@ -94,7 +89,7 @@ export default function FilterPanel({ activeTab }) {
             )}
 
             {/* TRANSPORT FILTER */}
-            {hasOptions('transport') && !isQualityView && (
+            {hasOptions('transport') && (
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-400 uppercase">Medio de Transporte</label>
                     <select 
@@ -111,7 +106,7 @@ export default function FilterPanel({ activeTab }) {
             )}
 
             {/* AGE GROUP FILTER */}
-            {hasOptions('ageGroup') && !isQualityView && (
+            {hasOptions('ageGroup') && (
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-400 uppercase">Edad (Víctima)</label>
                     <select 
@@ -128,7 +123,7 @@ export default function FilterPanel({ activeTab }) {
             )}
             
             {/* GENDER FILTER */}
-            {hasOptions('gender') && !isQualityView && (
+            {hasOptions('gender') && (
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-400 uppercase">Sexo (Víctima)</label>
                     <select 

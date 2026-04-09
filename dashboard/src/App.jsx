@@ -15,7 +15,6 @@ import FilterPanel from './components/layout/FilterPanel';
 import DashboardMap from './components/map/DashboardMap';
 import DemographicsChart from './components/charts/DemographicsChart';
 import TimelineChart from './components/charts/TimelineChart';
-import QualityOfLifeChart from './components/charts/QualityOfLifeChart';
 import AIChatAssistant from './components/chat/AIChatAssistant';
 import { useDashboard } from './context/DashboardContext';
 
@@ -117,11 +116,6 @@ function DashboardOverview() {
             <span className="text-xs text-gray-400">Datos multidimensionales</span>
         </div>
         <div className="h-32 bg-darkSidebar rounded-2xl border border-gray-800 p-6 flex flex-col justify-center gap-2 hover:border-accentPurple/50 transition-colors">
-            <span className="text-gray-400 text-sm font-medium">Calidad de Vida (Promedio)</span>
-            <span className="text-3xl font-bold text-white">68.4 <span className="text-lg text-gray-500 font-normal">/ 100</span></span>
-            <span className="text-xs text-gray-400">Basado en encuesta 2018</span>
-        </div>
-        <div className="h-32 bg-darkSidebar rounded-2xl border border-gray-800 p-6 flex flex-col justify-center gap-2 hover:border-accentPurple/50 transition-colors">
             <span className="text-gray-400 text-sm font-medium">Integración de Datos</span>
             <span className="text-3xl font-bold text-white">100%</span>
             <span className="text-xs text-accentPurple flex items-center gap-1">Crossfilter Activo</span>
@@ -160,21 +154,14 @@ function DashboardOverview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 min-h-[350px] bg-darkSidebar rounded-2xl border border-gray-800 p-6 flex flex-col shadow-lg">
+      <div className="flex w-full gap-6">
+        <div className="flex-1 min-h-[350px] bg-darkSidebar rounded-2xl border border-gray-800 p-6 flex flex-col shadow-lg">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-bold text-white">Tendencia Temporal (Da clic en un mes para filtrar)</h3>
             <span className="text-xs text-gray-400 bg-darkBg px-3 py-1 rounded-full border border-gray-800">Datos 2019</span>
           </div>
           <div className="w-full flex-1 bg-darkBg/30 rounded-xl p-4 border border-gray-800/50">
              <TimelineChart />
-          </div>
-        </div>
-        
-        <div className="min-h-[350px] bg-darkSidebar rounded-2xl border border-gray-800 p-6 flex flex-col shadow-lg">
-          <h3 className="text-lg font-bold text-white mb-2">Índice Calidad de Vida</h3>
-          <div className="w-full flex-1 bg-darkBg/30 rounded-xl p-4 border border-gray-800/50">
-             <QualityOfLifeChart />
           </div>
         </div>
       </div>
@@ -231,17 +218,6 @@ function DemographicsView() {
   );
 }
 
-function QualityView() {
-  return (
-    <div className="bg-darkSidebar rounded-2xl border border-gray-800 p-6 flex flex-col shadow-lg h-[calc(100vh-8rem)] min-h-[500px]">
-        <h3 className="text-lg font-bold text-white mb-4">Índice Multidimensional Calidad de Vida (Comunas)</h3>
-        <div className="w-full flex-1 bg-darkBg/30 rounded-xl p-4 border border-gray-800/50 max-w-3xl mx-auto flex">
-            <QualityOfLifeChart />
-        </div>
-    </div>
-  );
-}
-
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
 
@@ -255,9 +231,6 @@ function App() {
       break;
     case 'demographics':
       content = <DemographicsView />;
-      break;
-    case 'quality':
-      content = <QualityView />;
       break;
     case 'techstack':
       content = <TechStackView />;

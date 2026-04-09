@@ -6,19 +6,10 @@ export default function AIChatAssistant() {
     const { incidentsData, theftsData, filterByDimension } = useDashboard();
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
-        { sender: 'bot', text: '¡Hola! Soy MIA (Medellín Inteligente Assistant). Puedes hacerme preguntas en lenguaje natural sobre la ciudad. Por ejemplo:\n- "¿Cuál es la peor zona para ir en taxi?"\n- "¿Dónde hay más choques de vehículos?"\n- "¿Qué barrio me recomiendas para vivir?"' }
+        { sender: 'bot', text: '¡Hola! Soy MIA (Medellín Inteligente Assistant). Puedes hacerme preguntas en lenguaje natural sobre la ciudad. Por ejemplo:\n- "¿Cuál es la peor zona para ir en taxi?"\n- "¿Dónde hay más choques de vehículos?"' }
     ]);
     const [input, setInput] = useState('');
-    const [qolData, setQolData] = useState([]);
     const messagesEndRef = useRef(null);
-
-    // Fetch Quality of Life data dynamically for the chat agent
-    useEffect(() => {
-        fetch('/data/calidad_vida.json')
-            .then(r => r.json())
-            .then(setQolData)
-            .catch(console.error);
-    }, []);
 
     // Auto-scroll chat window
     useEffect(() => {
@@ -41,78 +32,7 @@ export default function AIChatAssistant() {
             }
         }
         
-        // 1. Intent: Calidad de Vida (Static Map - Multidimensional)
-        if (q.match(/(vivir|recomienda|mejor|peor|calidad de vida|educacion|educación|salud|empleo|trabajo|ambiente|ambiental|movilidad|trafico|seguridad|indice|índice)/)) {
-            if (qolData.length === 0) return { text: "Aún estoy analizando los datos de calidad de vida. Intenta en un segundo." };
-            
-            let focus = 'Total';
-            let label = "calidad de vida en general";
-            
-            if (q.match(/educación|educacion/)) { focus = 'Educación'; label = "educación formativa"; }
-            else if (q.match(/salud|medico|hospital/)) { focus = 'Salud'; label = "servicios de salud"; }
-            else if (q.match(/empleo|trabajo/)) { focus = 'Empleo'; label = "oportunidades de empleo"; }
-            else if (q.match(/ambiente|ambiental/)) { focus = 'Ambiente'; label = "medio ambiente y entorno"; }
-            else if (q.match(/movilidad|trafico|transporte/)) { focus = 'Movilidad'; label = "movilidad vehicular"; }
-            else if (q.match(/seguridad/)) { focus = 'Seguridad'; label = "seguridad ciudadana"; }
-            
-            const isWorst = q.match(/(peor|mala|baja|falta|peores)/);
-            
-            // Replicar las mismas fórmulas visuales del Gráfico Radar
-            const getScore = (d, category) => {
-                const base = parseFloat(d.Calidad_Vida_Total || 0);
-                if (category === 'Ambiente') return parseFloat(d.Indice_Ambiente || 0) * 20;
-                if (category === 'Movilidad') return parseFloat(d.Indice_Movilidad || 0) * 20;
-                if (category === 'Seguridad') return parseFloat(d.Indice_Seguridad || 0) * 20;
-                if (category === 'Educación') return Math.min(100, Math.max(10, base + 14));
-                if (category === 'Salud') return Math.min(100, Math.max(10, base + 8));
-                if (category === 'Empleo') return Math.min(100, Math.max(10, base - 5));
-                return base; // Total Calidad de Vida
-            };
 
-            // Si el usuario pregunta por una comuna en específico, evadimos buscar el máximo/mínimo absoluto
-            if (targetComuna) {
-                const targetData = qolData.find(d => d.Comuna.toLowerCase() === targetComuna.toLowerCase());
-                if (targetData) {
-                    const score = getScore(targetData, focus).toFixed(1);
-                    return {
-                        text: `El índice local de **${label}** específicamente en la comuna **${targetData.Comuna}** es de **${score} sobre 100**. ¡He centrado el dashboard en esta zona para que puedas analizar todas sus métricas laterales!`,
-                        action: { type: 'filterLocation', payload: targetData.Comuna }
-                    };
-                }
-            }
-
-            let result = qolData[0];
-            qolData.forEach(d => {
-                // Add fractional base as tie-breaker helper
-                const val = getScore(d, focus) + parseFloat(d.Calidad_Vida_Total || 0)*0.001;
-                const current = getScore(result, focus) + parseFloat(result.Calidad_Vida_Total || 0)*0.001;
-                
-                // Ignorar ceros si es 'peor' 
-                if (isWorst && val > 0 && val < current) result = d;
-                else if (!isWorst && val > current) result = d;
-            });
-            
-            const finalScore = getScore(result, focus).toFixed(1);
-            
-            // Generate Empathy based on context
-            const empathySadBase = ["Lamento informarte esto", "Tristemente, los datos indican que", "Por transparencia, debo decirte que"];
-            const empathyHappyBase = ["¡Qué excelente dato!", "Es muy reconfortante saber que", "Te cuento con entusiasmo que"];
-            const sadPrefix = empathySadBase[Math.floor(Math.random() * empathySadBase.length)];
-            const happyPrefix = empathyHappyBase[Math.floor(Math.random() * empathyHappyBase.length)];
-            
-            let textOutput = '';
-            if (isWorst) {
-                 textOutput = `${sadPrefix}, al analizar **${label}**, la comuna **${result.Comuna}** tiene mayores retos. Registra **${finalScore} sobre 100**. Como beneficio, ¡He movido el mapa hacia allí de forma automática!`;
-            } else {
-                 textOutput = `${happyPrefix}, en excelencia de **${label}**, la comuna **${result.Comuna}** es la líder. Obtuvo un altísimo puntaje de **${finalScore} sobre 100**. ¡He actualizado el dashboard a esta comuna para que la veas!`;
-            }
-            
-            return {
-                text: textOutput,
-                action: { type: 'filterLocation', payload: result.Comuna }
-            };
-        }
-        
         // 2. Generic Query Engine (Context & Fuzzy Matching)
         const isIncidentQuery = q.match(/(choque|accidente|incidente|tránsito|transito|vial|conducir|manejar|atropell|volcamiento|caida)/) && !q.match(/(robo|hurto|atraco|cosquilleo|ladron|roban|asaltan|fleteo|asalto|arma)/);
         const data = isIncidentQuery ? incidentsData : theftsData;
@@ -243,7 +163,7 @@ export default function AIChatAssistant() {
         }
 
         // Fallback catch-all
-        return { text: "Tengo acceso a métricas exhaustivas. Intenta preguntarme combinaciones locas como:\n- '¿Cuántos hurtos hay en total?'\n- '¿Cual es la comuna con mejor educación?'\n- '¿Cuál es el mes seguro para evitar choques?'" };
+        return { text: "Tengo acceso a métricas exhaustivas. Intenta preguntarme combinaciones locas como:\n- '¿Cuántos hurtos hay en total?'\n- '¿Cuál es el barrio menos seguro?'\n- '¿Cuál es el mes seguro para evitar choques?'" };
     };
 
     const handleSend = () => {
