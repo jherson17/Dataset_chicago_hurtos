@@ -3,7 +3,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useDashboard } from '../../context/DashboardContext';
 
 export default function TimelineChart() {
-  const { dataLoaded, filteredData, filterByMonth, activeFilters, activeDataset } = useDashboard();
+  const { isLoading, filteredData, filterByMonth, activeFilters, activeDataset } = useDashboard();
 
   const chartData = useMemo(() => {
     if (!filteredData.length) return [];
@@ -49,7 +49,7 @@ export default function TimelineChart() {
     return null;
   };
 
-  if (!dataLoaded) {
+  if (isLoading) {
      return (
         <div className="w-full h-full flex flex-col items-center justify-center">
             <div className="w-6 h-6 border-2 border-accentLime border-t-transparent rounded-full animate-spin mb-2"></div>
@@ -60,6 +60,22 @@ export default function TimelineChart() {
 
   const isIncident = activeDataset === 'incidents';
   const color = isIncident ? '#DDF45B' : '#8A68FA';
+  
+  const totalCounts = chartData.reduce((acc, curr) => acc + curr.count, 0);
+
+  if (totalCounts === 0 && filteredData.length > 0) {
+      return (
+         <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
+            <div className="w-12 h-12 rounded-full bg-darkBg flex items-center justify-center mb-4 text-gray-500 border border-gray-800">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            </div>
+            <h4 className="text-white font-bold mb-2">Granularidad Temporal Ausente</h4>
+            <p className="text-gray-400 text-sm max-w-sm">
+                Los registros de la base actual ({isIncident ? 'Incidentes' : 'Hurtos'}) no contienen fragmentación de meses lo suficientemente pura para dibujar la línea de tiempo.
+            </p>
+         </div>
+      );
+  }
 
   return (
     <div className="w-full h-full pb-6 pt-4 cursor-pointer">

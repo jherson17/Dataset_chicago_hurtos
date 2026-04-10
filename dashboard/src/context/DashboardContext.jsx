@@ -1,15 +1,5 @@
 /**
  * DashboardContext.jsx - Motor de Estado Global y Filtrado (El "Cerebro")
- * 
- * Este archivo utiliza el patrón Context API de React junto con la librería 'crossfilter2'
- * para manejar grandes volúmenes de datos espaciales y aplicar filtrado multidimensional ultrarrápido.
- * 
- * Flujo Principal (Clean Architecture):
- * 1. useEffect (Montaje): Descarga los archivos geojson procesados de forma asíncrona (Offline-first strategy).
- * 2. useEffect (Construcción): Cuando el usuario cambia entre 'incidentes' y 'hurtos', este bloque destruye 
- *    los índices en memoria viejos y construye nuevas "dimensiones" (mes, ubicación, género, etc.).
- * 3. Funciones Despachadoras: (filterByMonth, filterByDimension) están envueltas en `useCallback` 
- *    para evitar que React re-renderice la app entera innecesariamente cuando el usuario filtra rápido.
  */
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import crossfilter from 'crossfilter2';
@@ -17,11 +7,13 @@ import crossfilter from 'crossfilter2';
 const DashboardContext = createContext();
 
 export function DashboardProvider({ children }) {
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [incidentsData, setIncidentsData] = useState([]);
   const [theftsData, setTheftsData] = useState([]);
   
   const [activeDataset, setActiveDataset] = useState('incidents'); // 'incidents' or 'thefts'
+  const [selectedYears, setSelectedYears] = useState([2023]);
+  const [availableYears] = useState([2018, 2019, 2020, 2021, 2022, 2023, 2024]);
   
   // Crossfilter core state
   const [cf, setCf] = useState(null);
@@ -29,123 +21,96 @@ export function DashboardProvider({ children }) {
   const [filteredData, setFilteredData] = useState([]);
   const [activeFilters, setActiveFilters] = useState({});
   const [filterOptions, setFilterOptions] = useState({});
-  const [barrioToComunaMap, setBarrioToComunaMap] = useState({});
+  
+  // Cache for years
+  const [dataCache, setDataCache] = useState({ incidents: {}, thefts: {} });
 
-  // 1. Fetch raw data once
+  // 1. Fetch dynamico por años
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [inc, the] = await Promise.all([
-          fetch('/data/incidentes.geojson').then(r => r.json()),
-          fetch('/data/hurtos.geojson').then(r => r.json())
-        ]);
-        
-        // Build Barrio -> Comuna dictionary safely
-        const b2c = {};
-        if (inc && inc.features) {
-            inc.features.forEach(f => {
-                const p = f.properties;
-                // Since this is Chicago Data, we don't have Comuna, but we can map STREET_NAME to STREET_NAME
-                if (p.STREET_NAME) {
-                    b2c[p.STREET_NAME.trim()] = p.STREET_NAME.trim();
-                }
-            });
-        }
-        setBarrioToComunaMap(b2c);
+    const fetchYearsData = async () => {
+      setIsLoading(true);
+      setFilterOptions({});
+      let newCache = { ...dataCache };
+      let updated = false;
 
-        setIncidentsData(inc.features || []);
-        setTheftsData(the.features || []);
-        setDataLoaded(true);
-      } catch (err) {
-        console.error("Error loading data Context:", err);
+      const prefix = activeDataset === 'incidents' ? 'crashes' : 'crimes';
+      const cacheKey = activeDataset;
+
+      for (const y of selectedYears) {
+         if (!newCache[cacheKey][y]) {
+             try {
+                 const raw = await fetch(`/data/${prefix}_${y}.json`);
+                 if (raw.ok) {
+                     newCache[cacheKey][y] = await raw.json();
+                     updated = true;
+                 }
+             } catch (e) {
+                 console.error(`Failed to load year ${y}:`, e);
+             }
+         }
       }
-    };
-    fetchData();
-  }, []);
+      
+      if (updated) setDataCache(newCache);
 
-  // 2. Initialize/Update Crossfilter when dataset changes
+      // Consolidar data del año evitando desbordamiento de pila (Call Stack Exceeded)
+      let aggregatedData = [];
+      for (const y of selectedYears) {
+          if (newCache[cacheKey][y]) {
+              aggregatedData = aggregatedData.concat(newCache[cacheKey][y]);
+          }
+      }
+
+      if (activeDataset === 'incidents') setIncidentsData(aggregatedData);
+      else setTheftsData(aggregatedData);
+      
+      setIsLoading(false);
+    };
+
+    fetchYearsData().catch(e => {
+        console.error('Fatal fetch error:', e);
+        setIsLoading(false);
+    });
+  }, [activeDataset, selectedYears]);
+
+  // 2. Initialize/Update Crossfilter inside active context
   useEffect(() => {
-    if (!dataLoaded) return;
+    if (isLoading) return;
     
     const currentData = activeDataset === 'incidents' ? incidentsData : theftsData;
+    if (currentData.length === 0) return;
     
-    const normalizedData = currentData.map(f => {
-        const p = f.properties;
-        let dateObj = null;
-        let location = 'Desconocido';
-        let type = 'Desconocido';
-        let transport = 'No Aplica';
-        let ageGroup = 'No Aplica';
-        let gender = 'No Aplica';
-        
-        if (activeDataset === 'incidents') {
-            // Chicago Traffic Crashes Data
-            if (p.CRASH_DATE) {
-                dateObj = new Date(p.CRASH_DATE); // YYYY-MM-DD HH:MM:SS
-            }
-            location = p.STREET_NAME || 'Desconocido';
-            
-            const rawType = p.FIRST_CRASH_TYPE || 'Desconocido';
-            const translationMap = {
-                'REAR END': 'Choque Trasero',
-                'PARKED MOTOR VEHICLE': 'Vehículo Estacionado',
-                'ANGLE': 'Choque en Ángulo',
-                'TURNING': 'Giro',
-                'SIDESWIPE SAME DIRECTION': 'Roce Lateral',
-                'SIDESWIPE OPPOSITE DIRECTION': 'Roce Frontal/Lateral',
-                'PEDESTRIAN': 'Atropello Peatón',
-                'PEDALCYCLIST': 'Atropello Ciclista',
-                'FIXED OBJECT': 'Choque Objeto Fijo'
-            };
-            type = translationMap[rawType] || rawType;
-            transport = 'Automotor';
-        } else {
-            // LA Crime Data
-            if (p['DATE OCC']) {
-                // If it's just '2020-03-01' without time, we parse it directly
-                // Sometimes it has time in 'TIME OCC'. Let's just use DATE OCC for the day.
-                dateObj = new Date(p['DATE OCC']);
-            }
-            location = p['AREA NAME'] || 'Desconocido';
-            
-            const rawType = p['Crm Cd Desc'] || 'Desconocido';
-            if (rawType.includes('STOLEN')) type = 'Robo/Hurto';
-            else if (rawType.includes('BURGLARY')) type = 'Asalto a Propiedad';
-            else if (rawType.includes('ASSAULT') || rawType.includes('BATTERY')) type = 'Agresión Física';
-            else if (rawType.includes('ROBBERY')) type = 'Robo Violento';
-            else type = 'Otro Crimen';
-
-            transport = p['Premis Desc'] || 'Desconocido'; // Using premise as transport/location modifier
-            
-            const rawSex = p['Vict Sex'];
-            if (rawSex === 'M') gender = 'Masculino';
-            else if (rawSex === 'F') gender = 'Femenino';
-            else gender = 'Desconocido/Otro';
-            
-            const edad = parseInt(p['Vict Age']);
-            if (!isNaN(edad) && edad > 0) {
-                if (edad < 18) ageGroup = '0-17 años';
-                else if (edad < 30) ageGroup = '18-29 años';
-                else if (edad < 50) ageGroup = '30-49 años';
-                else ageGroup = '50+ años';
-            } else {
-                ageGroup = 'Sin dato';
-            }
-        }
-        
-        return {
-            ...f,
-            normalizedDate: dateObj,
-            month: (dateObj && !isNaN(dateObj)) ? dateObj.getMonth() : null, // 0-11
-            location,
-            type,
-            transport,
-            ageGroup,
-            gender
+    const normalizedData = currentData.map((d, index) => {
+        let base = {
+            id: index,
+            lat: d.lat,
+            lng: d.lng,
+            year: d.y,
+            month: d.m || 0,
+            location: d.loc || 'Desconocido',
+            type: d.type || 'Desconocido'
         };
-    }).filter(d => d.normalizedDate && !isNaN(d.normalizedDate));
 
-    // Setup Crossfilter
+        if (activeDataset === 'incidents') {
+            return {
+                ...base,
+                transport: 'Automotor', // Valor pasivo para incidentes
+                ageGroup: 'No Específicado', // Valor pasivo
+                gender: 'No Específicado', // Valor pasivo
+                arrest: 'No Aplica',
+                domestic: 'No Aplica'
+            };
+        } else {
+            return {
+                ...base,
+                transport: 'No Aplica',
+                ageGroup: 'No Aplica',
+                gender: 'No Aplica',
+                arrest: d.arrest || 'No',
+                domestic: d.domestic || 'Crimen Particular'
+            };
+        }
+    });
+
     const ndx = crossfilter(normalizedData);
     
     const dims = {
@@ -154,39 +119,38 @@ export function DashboardProvider({ children }) {
         type: ndx.dimension(d => d.type),
         transport: ndx.dimension(d => d.transport),
         ageGroup: ndx.dimension(d => d.ageGroup),
-        gender: ndx.dimension(d => d.gender)
+        gender: ndx.dimension(d => d.gender),
+        arrest: ndx.dimension(d => d.arrest),
+        domestic: ndx.dimension(d => d.domestic)
     };
 
-    // Calculate unique options for UI Dropdowns
-    const extractOptions = (dim, ignoreList = ['No Aplica', 'Desconocido', 'Sin dato']) => {
+    const extractOptions = (dim, ignoreList = ['No Aplica', 'Desconocido', 'No Específicado', 'Otro']) => {
         return dim.group().all()
           .filter(g => g.value > 0 && !ignoreList.includes(g.key) && g.key !== null)
           .map(g => g.key)
           .sort();
     };
 
-    const newOptions = {
+    setCf(ndx);
+    setDimensions(dims);
+    setFilterOptions({
         location: extractOptions(dims.location),
         type: extractOptions(dims.type),
         transport: extractOptions(dims.transport),
         ageGroup: extractOptions(dims.ageGroup),
-        gender: extractOptions(dims.gender)
-    };
-
-    setCf(ndx);
-    setDimensions(dims);
-    setFilterOptions(newOptions);
+        gender: extractOptions(dims.gender),
+        arrest: extractOptions(dims.arrest),
+        domestic: extractOptions(dims.domestic)
+    });
     setFilteredData(ndx.allFiltered());
     setActiveFilters({});
     
     return () => {
-        // Cleanup memory when dataset switches
         Object.values(dims).forEach(d => d.dispose());
         ndx.remove();
     };
-  }, [dataLoaded, activeDataset, incidentsData, theftsData]);
+  }, [isLoading, activeDataset, incidentsData, theftsData]);
 
-  // 3. Filter actions (Wrapped in useCallback to prevent child re-renders)
   const filterByDimension = useCallback((dimName, val) => {
       const dim = dimensions[dimName];
       if (!dim || !cf) return;
@@ -205,9 +169,7 @@ export function DashboardProvider({ children }) {
       setFilteredData(cf.allFiltered());
   }, [dimensions, cf]);
 
-  const filterByMonth = useCallback((monthIndex) => {
-      filterByDimension('month', monthIndex);
-  }, [filterByDimension]);
+  const filterByMonth = useCallback((monthIndex) => { filterByDimension('month', monthIndex); }, [filterByDimension]);
 
   const clearFilters = useCallback(() => {
       if (!dimensions || !cf) return;
@@ -216,25 +178,31 @@ export function DashboardProvider({ children }) {
       setFilteredData(cf.allFiltered());
   }, [dimensions, cf]);
 
-  // 4. Context Value Memoization
+  const toggleYear = useCallback((year) => {
+      setSelectedYears(prev => 
+          prev.includes(year) && prev.length > 1 ? prev.filter(y => y !== year) : [...prev.filter(y => y !== year), year].sort((a,b)=>a-b)
+      );
+  }, []);
+
   const contextValue = useMemo(() => ({
-      dataLoaded,
+      isLoading,
       activeDataset,
       setActiveDataset,
+      selectedYears,
+      availableYears,
+      toggleYear,
       filteredData,
       filterByMonth,
       filterByDimension,
       activeFilters,
       filterOptions,
       clearFilters,
-      barrioToComunaMap,
       incidentsData,
       theftsData,
       rawDatasetLength: activeDataset === 'incidents' ? incidentsData.length : theftsData.length
   }), [
-      dataLoaded, activeDataset, filteredData, activeFilters,
-      filterOptions, barrioToComunaMap, incidentsData, theftsData,
-      filterByMonth, filterByDimension, clearFilters
+      isLoading, activeDataset, selectedYears, availableYears, toggleYear, filteredData, activeFilters,
+      filterOptions, incidentsData, theftsData, filterByMonth, filterByDimension, clearFilters
   ]);
 
   return (

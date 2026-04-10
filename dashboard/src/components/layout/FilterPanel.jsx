@@ -6,9 +6,6 @@
  * 
  * Comportamiento Contextual Inteligente implementado:
  * - Lee la propiedad `activeTab` para saber en qué pantalla está el usuario.
- * - Si el usuario está viendo el gráfico de "Calidad de Vida" (isQualityView = true), 
- *   oculta automáticamente todos los filtros no espaciales (Edad, Sexo, Tipo, Transporte) 
- *   para mantener una UI limpia, ya que ese radar solo responde al filtro de "Ubicación".
  */
 import React from 'react';
 import { useDashboard } from '../../context/DashboardContext';
@@ -17,8 +14,6 @@ import { Filter } from 'lucide-react';
 export default function FilterPanel({ activeTab }) {
   const { activeDataset, setActiveDataset, filterOptions, activeFilters, filterByDimension } = useDashboard();
   
-  const isQualityView = activeTab === 'quality';
-
   if (!filterOptions || Object.keys(filterOptions).length === 0) return null;
 
   const handleChange = (dimName, e) => {
@@ -62,7 +57,7 @@ export default function FilterPanel({ activeTab }) {
             {/* LOCATION FILTER */}
             {hasOptions('location') && (
                 <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-semibold text-gray-400 uppercase">Ubicación (Comuna/Barrio)</label>
+                    <label className="text-xs font-semibold text-gray-400 uppercase">Ubicación (Calle/Avenida)</label>
                     <select 
                         value={activeFilters.location || ''} 
                         onChange={(e) => handleChange('location', e)}
@@ -77,7 +72,7 @@ export default function FilterPanel({ activeTab }) {
             )}
 
             {/* TYPE FILTER */}
-            {hasOptions('type') && !isQualityView && (
+            {hasOptions('type') && (
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-400 uppercase">Tipo / Modalidad</label>
                     <select 
@@ -94,7 +89,7 @@ export default function FilterPanel({ activeTab }) {
             )}
 
             {/* TRANSPORT FILTER */}
-            {hasOptions('transport') && !isQualityView && (
+            {(activeDataset === 'incidents' || hasOptions('transport')) && (
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-400 uppercase">Medio de Transporte</label>
                     <select 
@@ -111,7 +106,7 @@ export default function FilterPanel({ activeTab }) {
             )}
 
             {/* AGE GROUP FILTER */}
-            {hasOptions('ageGroup') && !isQualityView && (
+            {hasOptions('ageGroup') && (
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-400 uppercase">Edad (Víctima)</label>
                     <select 
@@ -128,7 +123,7 @@ export default function FilterPanel({ activeTab }) {
             )}
             
             {/* GENDER FILTER */}
-            {hasOptions('gender') && !isQualityView && (
+            {hasOptions('gender') && (
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-400 uppercase">Sexo (Víctima)</label>
                     <select 
@@ -138,6 +133,40 @@ export default function FilterPanel({ activeTab }) {
                     >
                         <option value="">Todos</option>
                         {filterOptions.gender.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            {/* CRIME SPECIFIC: ARREST */}
+            {activeDataset === 'thefts' && hasOptions('arrest') && (
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-400 uppercase">¿Hubo Arresto?</label>
+                    <select 
+                        value={activeFilters.arrest || ''} 
+                        onChange={(e) => handleChange('arrest', e)}
+                        className="w-full bg-darkBg border border-gray-700 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-accentLime focus:ring-1 focus:ring-accentLime/50 transition-colors"
+                    >
+                        <option value="">Todas las opciones</option>
+                        {filterOptions.arrest.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            {/* CRIME SPECIFIC: DOMESTIC */}
+            {activeDataset === 'thefts' && hasOptions('domestic') && (
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-400 uppercase">Violencia Doméstica</label>
+                    <select 
+                        value={activeFilters.domestic || ''} 
+                        onChange={(e) => handleChange('domestic', e)}
+                        className="w-full bg-darkBg border border-gray-700 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-accentLime focus:ring-1 focus:ring-accentLime/50 transition-colors"
+                    >
+                        <option value="">Todas las opciones</option>
+                        {filterOptions.domestic.map(opt => (
                             <option key={opt} value={opt}>{opt}</option>
                         ))}
                     </select>

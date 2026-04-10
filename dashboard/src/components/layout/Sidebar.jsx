@@ -5,7 +5,6 @@ const navItems = [
   { id: 'dashboard', label: 'Resumen General', icon: LayoutDashboard },
   { id: 'incidents', label: 'Incidentes y Hurtos', icon: MapIcon },
   { id: 'demographics', label: 'Demografía', icon: BarChart2 },
-  { id: 'quality', label: 'Calidad de Vida', icon: ShieldAlert },
   { id: 'techstack', label: 'Arquitectura y Stack', icon: Cpu },
 ];
 
@@ -18,7 +17,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
             <MapIcon size={20} className="text-white" />
           </div>
           <div className="flex flex-col">
-            <span className="tracking-widest text-sm text-gray-400">MEDELLÍN</span>
+            <span className="tracking-widest text-sm text-gray-400">CHICAGO</span>
             <span className="text-accentLime leading-tight text-lg">INTEL</span>
           </div>
         </h1>
