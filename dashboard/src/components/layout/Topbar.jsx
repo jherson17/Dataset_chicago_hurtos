@@ -46,15 +46,7 @@ export default function Topbar({ title }) {
             )}
         </div>
 
-        <div className="flex items-center gap-3">
-            <button className="w-10 h-10 rounded-full bg-darkSidebar flex items-center justify-center text-gray-400 hover:text-white border border-gray-800 hover:border-accentPurple/50 transition-colors">
-                <Search size={18} />
-            </button>
-            <button className="w-10 h-10 rounded-full bg-darkSidebar flex items-center justify-center text-gray-400 hover:text-white border border-gray-800 hover:border-accentPurple/50 transition-colors relative">
-                <Bell size={18} />
-                <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-accentLime border border-darkSidebar"></span>
-            </button>
-        </div>
+    {/* Botones de notificaciones eliminados a petición del usuario */}
       </div>
     </header>
   );

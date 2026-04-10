@@ -17,7 +17,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
             <MapIcon size={20} className="text-white" />
           </div>
           <div className="flex flex-col">
-            <span className="tracking-widest text-sm text-gray-400">MEDELLÍN</span>
+            <span className="tracking-widest text-sm text-gray-400">CHICAGO</span>
             <span className="text-accentLime leading-tight text-lg">INTEL</span>
           </div>
         </h1>
