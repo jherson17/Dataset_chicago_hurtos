@@ -24,7 +24,7 @@ function TechStackView() {
         <div className="max-w-4xl mx-auto w-full">
             <h2 className="text-2xl font-bold text-white mb-2">Stack Tecnológico (Data Science & Web App)</h2>
             <p className="text-gray-400 mb-8 leading-relaxed">
-               El desarrollo íntegro de Medellín Inteligente, incluyendo su asistente de IA, el motor de pre-procesamiento de Big Data y su interfaz reactiva, fue ensamblado con un ecosistema orientado a alta eficiencia <b>(Offline-First)</b>.
+               El desarrollo íntegro de <b>Resiliencia Urbana Chicago</b>, incluyendo su asistente de IA, el motor de pre-procesamiento de Big Data y su interfaz reactiva, fue ensamblado con un ecosistema orientado a alta eficiencia <b>(Offline-First)</b>.
             </p>
 
             <div className="space-y-8 pb-8">
