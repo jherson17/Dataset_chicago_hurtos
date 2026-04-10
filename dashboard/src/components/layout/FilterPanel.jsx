@@ -138,6 +138,40 @@ export default function FilterPanel({ activeTab }) {
                     </select>
                 </div>
             )}
+
+            {/* CRIME SPECIFIC: ARREST */}
+            {activeDataset === 'thefts' && hasOptions('arrest') && (
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-400 uppercase">¿Hubo Arresto?</label>
+                    <select 
+                        value={activeFilters.arrest || ''} 
+                        onChange={(e) => handleChange('arrest', e)}
+                        className="w-full bg-darkBg border border-gray-700 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-accentLime focus:ring-1 focus:ring-accentLime/50 transition-colors"
+                    >
+                        <option value="">Todas las opciones</option>
+                        {filterOptions.arrest.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
+
+            {/* CRIME SPECIFIC: DOMESTIC */}
+            {activeDataset === 'thefts' && hasOptions('domestic') && (
+                <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-gray-400 uppercase">Violencia Doméstica</label>
+                    <select 
+                        value={activeFilters.domestic || ''} 
+                        onChange={(e) => handleChange('domestic', e)}
+                        className="w-full bg-darkBg border border-gray-700 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:border-accentLime focus:ring-1 focus:ring-accentLime/50 transition-colors"
+                    >
+                        <option value="">Todas las opciones</option>
+                        {filterOptions.domestic.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                    </select>
+                </div>
+            )}
         </div>
     </div>
   );

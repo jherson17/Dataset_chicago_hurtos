@@ -1,14 +1,5 @@
 /**
  * DashboardMap.jsx - Motor Geoespacial y Capas Base
- * 
- * Este componente es responsable de renderizar los miles de puntos de datos sobre un plano cartográfico.
- * Utiliza 'react-leaflet' (el estándar del ecosistema React para Leaflet.js).
- * 
- * Optimizaciones implementadas para visualización masiva:
- * - Se suscribe a `filteredData` del DashboardContext, así que Leaflet solo 
- *   pinta y elimina los marcadores relevantes instantáneamente.
- * - Utiliza `CircleMarker` (capas vectoriales calculadas en GPU/Canvas) en lugar de imágenes de 
- *   pines SVG pesados, asegurando fluidez a 60FPS sin importar el volumen de nodos filtrados.
  */
 import React from 'react';
 import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
@@ -16,12 +7,12 @@ import 'leaflet/dist/leaflet.css';
 import { useDashboard } from '../../context/DashboardContext';
 
 export default function DashboardMap() {
-  const { dataLoaded, filteredData, activeDataset } = useDashboard();
+  const { isLoading, filteredData, activeDataset } = useDashboard();
 
-  // Switch center based on dataset (Chicago for Incidents, LA for Crimes)
-  const center = activeDataset === 'incidents' ? [41.8781, -87.6298] : [34.0522, -118.2437];
+  // Siempre centrado en Chicago
+  const center = [41.8781, -87.6298];
 
-  if (!dataLoaded) {
+  if (isLoading) {
       return (
         <div className="absolute inset-0 z-[1000] bg-darkSidebar flex items-center justify-center backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3">
@@ -50,10 +41,9 @@ export default function DashboardMap() {
         />
         
         {displayData.map(feature => {
-            const coords = feature.geometry?.coordinates;
-            if (!coords || coords.length !== 2) return null;
-            const lat = coords[1];
-            const lon = coords[0];
+            const lat = feature.lat;
+            const lon = feature.lng;
+            if (!lat || !lon) return null;
             
             const isIncident = activeDataset === 'incidents';
             const color = isIncident ? '#DDF45B' : '#8A68FA';
@@ -77,19 +67,13 @@ export default function DashboardMap() {
                                 {isIncident ? 'Incidente de Tráfico' : 'Reporte de Hurto (Crimen)'}
                             </h4>
                             <div className="text-xs text-gray-600 space-y-1 mt-2">
-                                {isIncident ? (
+                                <p><span className="font-semibold">Tipo:</span> {feature.type}</p>
+                                <p><span className="font-semibold">Lugar:</span> {feature.location}</p>
+                                <p><span className="font-semibold">Año:</span> {feature.year}</p>
+                                {!isIncident && (
                                     <>
-                                        <p><span className="font-semibold">Tipo:</span> {feature.properties.FIRST_CRASH_TYPE}</p>
-                                        <p><span className="font-semibold">Gravedad:</span> {feature.properties.MOST_SEVERE_INJURY}</p>
-                                        <p><span className="font-semibold">Calle/Lugar:</span> {feature.properties.STREET_NAME || 'Desconocido'}</p>
-                                        <p><span className="font-semibold">Fecha:</span> {feature.properties.CRASH_DATE}</p>
-                                    </>
-                                ) : (
-                                    <>
-                                        <p><span className="font-semibold">Modalidad:</span> {feature.properties['Crm Cd Desc']}</p>
-                                        <p><span className="font-semibold">Ubicación Prima:</span> {feature.properties['Premis Desc']}</p>
-                                        <p><span className="font-semibold">Área:</span> {feature.properties['AREA NAME'] || 'Desconocido'}</p>
-                                        <p><span className="font-semibold">Fecha:</span> {feature.properties['DATE OCC']}</p>
+                                        <p><span className="font-semibold">Arresto:</span> {feature.arrest}</p>
+                                        <p><span className="font-semibold">Tipo Violencia:</span> {feature.domestic}</p>
                                     </>
                                 )}
                             </div>

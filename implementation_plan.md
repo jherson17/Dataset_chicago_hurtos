@@ -12,13 +12,19 @@ Para no perder el valor analítico histórico de la inmensa cantidad de datos (e
 
 ## Columnas Detectadas y Nuevos Filtros Propuestos (Español)
 
-*(Nota: `Location Description` se refiere a la tipología arquitectónica/física del lugar, ej. calle, restaurante. Mientras que `Community Area` es la zona territorial/barrio).*
+> [!IMPORTANT]
+> **REGLA ESTRICTA DE FILTRADO:**
+> Se propone incorporar nuevos descriptores sociodemográficos y operativos **EXCLUSIVAMENTE para la vista de Hurtos (Crímenes)**.
+> **Los filtros actuales existentes para "Incidentes" (Accidentes de Tránsito) NO SE MODIFICARÁN** y su interfaz permanecerá intacta tal cual opera en el estado actual. Al cambiar entre las vistas mediante los botones (Incidentes/Hurtos), el sistema controlará qué conjunto de filtros se visualizan.
 
-1. **Tipo de Suceso (`Primary Type` / `Crash Type`)**: Categorías gruesas de crímenes y choques. (Ej. *Robo, Narcóticos, Asalto, Colisión Vehicular*).
-2. **Lugar de los Hechos (`Location Description`)**: Entorno físico. (Ej. *Residencia, Vía Pública, Acera/Andén*).
-3. **Hubo Arresto (`Arrest`)**: Filtro binario para medir eficacia (Solo crímenes: *Sí hubo Arresto / No hubo Arresto*).
-4. **Entorno Doméstico (`Domestic`)**: Discernir violencia intrafamiliar frente a crímenes de calle (Solo crímenes: *Violencia Intrafamiliar / Crimen Particular*).
-5. **Área Geográfica / Comuna (`Community Area`)**: Reemplazo de las zonas antiguas mediante codificaciones barriales de Chicago.
+*(Filtros específicos a implementar SOLO para la base de datos de Hurtos/Crímenes):*
+
+1. **Hubo Arresto (`Arrest`)**: Filtro binario para medir la tasa de efectividad policial en Chicago (*Sí hubo Arresto / No hubo Arresto*).
+2. **Entorno Doméstico (`Domestic`)**: Discernir si el crimen corresponde a violencia intrafamiliar frente a incidentes en calle abierta (*Violencia Intrafamiliar / Crimen Particular*).
+3. **Lugar de los Hechos (`Location Description`)**: Subdivisión arquitectónica o física. (Ej. *Residencia, Vía Pública, Acera/Andén, Callejón*).
+4. **Área Geográfica / Comuna (`Community Area`)**: Segmentación territorial oficial que reemplaza a las comunas antiguas por las 77 áreas de Chicago.
+
+*(Nota: Ciertas clasificaciones universales como el "Tipo/Modalidad del Suceso" se conectarán a sus respectivas bases de manera independiente).*
 
 ---
 
@@ -50,15 +56,23 @@ Para no perder el valor analítico histórico de la inmensa cantidad de datos (e
 - Modificar el sistema de `fetch` introduciendo una función que combine en tiempo de ejecución múltiples JSON (Ej. si se marcan 2021 y 2022, fetchamos 2 archivos y sumamos sus Dataframes al Crossfilter).
 - Mostrar _Spinners_ (indicadores de carga) al despachar un año nuevo.
 
-### 3. Ajuste de Filtros Universales (Filter Panel y Mapa)
+### 3. Ajuste de Filtros (Filter Panel y Mapa)
 #### [MODIFY] `src/components/layout/FilterPanel.jsx`
-- Re-diseño de los selectores dinámicos integrando vocabularios cruzados si elegimos ver Crímenes o ver Incidentes. Nombres como: _"Tipo del Suceso", "Lugar de los Hechos", "Estado Policial", "Entorno"_.
+- Ocultar/Mostrar condicionalmente los filtros si el usuario navega entre ambas bases.
+- Para **Incidentes**: Renderizar de forma pasiva los mismos componentes Select HTML y filtros originales, sin alterar variables (se respetará 100% la UI/lógica original).
+- Para **Hurtos (Crímenes)**: Inyectar los listados del dataset de Chicago construyendo dinámicamente Selects para: `¿Hubo Arresto?`, `Violencia Doméstica`, `Lugar de los Hechos`.
 
 #### [MODIFY] `src/components/map/DashboardMap.jsx`
 - Centrado del encuadre geográfico de la cámara en las coordenadas absolutas de Chicago `(41.8781, -87.6298)`.
 
 #### [MODIFY] `src/components/chat/AIChatAssistant.jsx`
-- Ajustar algoritmos de la Inteligencia Artificial (M.I.A) en funciones NLP para que ofrezca tips según "Años", "Crimen en Chicago" y "Siniestros de Tránsito".
+- Transición de identidad: El bot abandonará su rol de "IA Medellín Inteligente" para convertirse en la **"IA Chicago Inteligente"**.
+- **Contexto Dimensional:** El bot leerá la data procesada en tiempo real. Esto significa que si el usuario elige el año "2023" en las opciones, el bot SOLO calculará sus respuestas analizando la data de 2023 del set activo (Hurtos o Incidentes).
+- **Verificación de Inteligencia (Preguntas de Prueba):** El sistema NLP será programado para responder acertadamente a iteraciones de las siguientes preguntas de prueba:
+  1. *"¿Cuántos registros (crímenes/incidentes) hay en los años que tengo seleccionados?"*
+  2. *"¿Cuál es el tipo de suceso o modalidad más repetitiva en mi pantalla actual?"*
+  3. *"¿En qué entorno o lugares se cometen más estos eventos según los años que veo?"*
+  4. *(Para Crímenes)*: *"¿Cuál es la proporción o porcentaje de arrestos realizados en estos datos?"*
 
 ---
 
