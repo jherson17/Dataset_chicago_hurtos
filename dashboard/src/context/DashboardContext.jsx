@@ -29,6 +29,7 @@ export function DashboardProvider({ children }) {
   useEffect(() => {
     const fetchYearsData = async () => {
       setIsLoading(true);
+      setFilterOptions({});
       let newCache = { ...dataCache };
       let updated = false;
 

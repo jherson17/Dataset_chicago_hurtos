@@ -3,13 +3,27 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useDashboard } from '../../context/DashboardContext';
 
 export default function DemographicsChart() {
-  const { filteredData, activeDataset, dataLoaded } = useDashboard();
+  const { filteredData, activeDataset, isLoading } = useDashboard();
 
   const chartData = useMemo(() => {
     if (!filteredData || filteredData.length === 0) return [];
     
-    const counts = { 'Masculino': 0, 'Femenino': 0, 'Otro/Sin dato': 0 };
+    // Si estamos en Hurtos, mostramos Efectividad (Arrestos) en vez de Demografía rota
+    if (activeDataset === 'thefts') {
+        const arrestCounts = { 'Capturados': 0, 'Prófugos': 0 };
+        filteredData.forEach(d => {
+            if (d.arrest === 'Sí') arrestCounts['Capturados']++;
+            else arrestCounts['Prófugos']++;
+        });
+        
+        return [
+            { name: 'Capturados', count: arrestCounts['Capturados'], color: '#DDF45B' },
+            { name: 'Prófugos', count: arrestCounts['Prófugos'], color: '#8A68FA' }
+        ];
+    }
     
+    // Lógica legacy por si acaso
+    const counts = { 'Masculino': 0, 'Femenino': 0, 'Otro/Sin dato': 0 };
     filteredData.forEach(d => {
         const sexo = (d.gender || '').trim();
         if (sexo.toLowerCase() === 'masculino' || sexo.toLowerCase() === 'hombre') {
@@ -26,7 +40,7 @@ export default function DemographicsChart() {
       { name: 'Femenino', count: counts['Femenino'], color: '#DDF45B' },
       { name: 'Otro/SD', count: counts['Otro/Sin dato'], color: '#C1B2FF' }
     ].filter(d => d.count > 0);
-  }, [filteredData]);
+  }, [filteredData, activeDataset]);
 
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -42,7 +56,7 @@ export default function DemographicsChart() {
     return null;
   };
 
-  if (!dataLoaded) {
+  if (isLoading) {
      return (
         <div className="w-full h-full flex flex-col items-center justify-center text-center p-6">
             <div className="w-6 h-6 border-2 border-accentPurple border-t-transparent rounded-full animate-spin mb-2"></div>

@@ -93,7 +93,7 @@ function TechStackView() {
 }
 
 function DashboardOverview() {
-  const { activeDataset, setActiveDataset, filteredData, rawDatasetLength, activeFilters, clearFilters } = useDashboard();
+  const { activeDataset, setActiveDataset, filteredData, rawDatasetLength, activeFilters, clearFilters, selectedYears } = useDashboard();
 
   return (
     <div className="space-y-6">
@@ -158,7 +158,9 @@ function DashboardOverview() {
         <div className="flex-1 min-h-[350px] bg-darkSidebar rounded-2xl border border-gray-800 p-6 flex flex-col shadow-lg">
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-lg font-bold text-white">Tendencia Temporal (Da clic en un mes para filtrar)</h3>
-            <span className="text-xs text-gray-400 bg-darkBg px-3 py-1 rounded-full border border-gray-800">Datos 2019</span>
+            <span className="text-xs text-gray-400 bg-darkBg px-3 py-1 rounded-full border border-gray-800">
+                {selectedYears && selectedYears.length > 0 ? `Datos ${selectedYears.join(', ')}` : 'Sin datos'}
+            </span>
           </div>
           <div className="w-full flex-1 bg-darkBg/30 rounded-xl p-4 border border-gray-800/50">
              <TimelineChart />

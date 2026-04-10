@@ -89,7 +89,7 @@ export default function FilterPanel({ activeTab }) {
             )}
 
             {/* TRANSPORT FILTER */}
-            {hasOptions('transport') && (
+            {(activeDataset === 'incidents' || hasOptions('transport')) && (
                 <div className="flex flex-col gap-1.5">
                     <label className="text-xs font-semibold text-gray-400 uppercase">Medio de Transporte</label>
                     <select 
