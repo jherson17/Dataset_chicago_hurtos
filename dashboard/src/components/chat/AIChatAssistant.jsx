@@ -28,42 +28,51 @@ export default function AIChatAssistant() {
         const yearsStr = selectedYears.join(', ');
 
         // 1. Total records
-        if (q.match(/(cu[aá]nto|cantidad|total|registro)/)) {
-            return { text: `Actualmente tienes seleccionados los años **${yearsStr}**. En este rango de tiempo filtrado, hay un total de **${filteredData.length}** registros de ${typeName} en pantalla.` };
+        if (q.match(/(cu[aá]nto.*(registro|caso|incidente|hurto)|cantidad\s+total|total\s+de|cantidad|total)/)) {
+            return { text: `Actualmente tienes seleccionados los años **${yearsStr}** en el panel superior.\n\nPara este periodo de tiempo especificado, el sistema cuenta con un volumen total de **${filteredData.length.toLocaleString()}** registros oficiales de ${typeName} visibles en pantalla.` };
         }
 
         // 2. Most frequent type/modality
-        if (q.match(/(tipo|modalidad|m[aá]s repetitiv|con m[aá]s frecuencia|frecuente)/)) {
+        if (q.match(/(modalidad.*repetitiva|tipo de suceso|m[aá]s frecuente|incidente.*frecuencia|con m[aá]s frecuencia|m[aá]s repetitiv|modalidad)/)) {
             const counts = {};
             filteredData.forEach(f => {
                 const t = f.type || 'Desconocido';
                 counts[t] = (counts[t] || 0) + 1;
             });
             const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
-            if (sorted.length === 0) return { text: "No hay modalidades registradas." };
+            if (sorted.length === 0) return { text: "Actualmente no existen modalidades registradas para calcular esto en tu pantalla." };
             
-            return { text: `Según la data en pantalla para los años ${yearsStr}, la modalidad más repetitiva es **${sorted[0][0]}** con ${sorted[0][1]} sucesos registrados. Le sigue ${sorted.length > 1 ? sorted[1][0] : 'ninguna otra'}.` };
+            let message = `Analizando las anomalías para los años filtrados (${yearsStr}):\n\nEl suceso o modalidad más repetitiva es contundentemente **${sorted[0][0]}** (ocurriendo un total de **${sorted[0][1].toLocaleString()}** veces).`;
+            
+            if (sorted.length > 1) {
+                message += `\n\nLe pisan los talones reportes de **${sorted[1][0]}** con ${sorted[1][1].toLocaleString()} casos detectados. ¡Ten cuidado con estas tendencias!`;
+            }
+            
+            return { text: message };
         }
 
         // 3. Most frequent location/environment
-        if (q.match(/(entorno|lugar|d[oó]nde|calle|ubicaci[oó]n|zona)/)) {
+        if (q.match(/(entorno.*m[aá]s|lugar.*concentran|d[oó]nde\sest[aá].*ubicaci[oó]n|d[oó]nde|calle|ubicaci[oó]n.*cr[ií]tica|zona|entorno)/)) {
             const counts = {};
             filteredData.forEach(f => {
                 const l = f.location || 'Desconocido';
                 if (l !== 'Desconocido') counts[l] = (counts[l] || 0) + 1;
             });
             const sorted = Object.entries(counts).sort((a,b) => b[1] - a[1]);
-            if (sorted.length === 0) return { text: "No encuentro ubicaciones claras en la data actual." };
+            if (sorted.length === 0) return { text: "No encuentro entornos ni ubicaciones claras en la data actual para rastrear métricas espaciales." };
+
+            const topPdl = sorted[0][0];
+            const topAmnt = sorted[0][1];
 
             return { 
-                text: `El entorno o lugar crítico donde ocurren más de estos eventos (durante ${yearsStr}) es **${sorted[0][0]}** con un total de ${sorted[0][1]} apariciones en el registro.`,
-                action: { type: 'filterLocation', payload: sorted[0][0] }
+                text: `El foco de la anomalía geográfica para los años ${yearsStr} radica en las zonas clasificadas como **${topPdl}**.\n\nContabilizo un total de **${topAmnt.toLocaleString()} apariciones** concentradas en ese entorno específico durante el rango filtrado.\n\n📍 *He filtrado el dashboard y el mapa a esta ubicación automáticamente para tu análisis.*`,
+                action: { type: 'filterLocation', payload: topPdl }
             };
         }
 
         // 4. Arrest proportion (only crimes)
-        if (q.match(/(arresto|proporci[oó]n|porcentaje)/)) {
-            if (!isCrime) return { text: "El porcentaje de arrestos es un dato que solo está disponible cuando visualizas la base de datos de Crímenes (Hurtos), no en incidentes viales." };
+        if (q.match(/(arresto.*porcentaje|proporci[oó]n.*arresto|tasa.*arresto|porcentaje.*arresto|termin[oó].*arresto|arrestos)/)) {
+            if (!isCrime) return { text: "El porcentaje de arrestos es un dato que solo está disponible cuando visualizas la base de datos de Crímenes (Hurtos) de Chicago, no en Incidentes de Tránsito." };
             
             let yes = 0, no = 0;
             filteredData.forEach(f => {
@@ -71,10 +80,10 @@ export default function AIChatAssistant() {
                  else no++;
             });
             const total = yes + no;
-            if (total === 0) return { text: "No hay datos de arresto." };
+            if (total === 0) return { text: "No hay registros suficientes en este entorno para calcular la tasa de captura policial." };
             
             const pct = ((yes / total) * 100).toFixed(1);
-            return { text: `Midiendo la efectividad policial en los datos seleccionados (${yearsStr}):\nHubo **${yes} arrestos** reales frente a ${no} crímenes sin arresto.\nEsto representa una tasa de éxito/captura del **${pct}%**.` };
+            return { text: `Analizando el comportamiento policial según los filtros y fechas seleccionados (${yearsStr}):\n\nDe un total de ${total.toLocaleString()} crímenes investigados, procesamos:\n- **${yes.toLocaleString()}** delincuentes que terminaron en **arresto positivo**.\n- **${no.toLocaleString()}** evasiones.\n\nEsto equivale a una tasa oficial de captura / efectividad policial del **${pct}%**.` };
         }
 
         // Fallback
